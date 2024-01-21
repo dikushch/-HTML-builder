@@ -8,6 +8,8 @@ fs.readdir(
   dirPath,
   { withFileTypes: true },
   (err, files) => {
+    if (err) throw err;
+
     for (const file of files) {
       if (file.isFile()) {
         const filePath = path.resolve(file.path, file.name);
@@ -15,6 +17,8 @@ fs.readdir(
         const { name, ext } = path.parse(fileName);
 
         fs.stat(filePath, (err, stats) => {
+          if (err) throw err;
+
           stdout.write(`${name} - ${ext.slice(1)} - ${stats.size}b\n`);
         });
       }
