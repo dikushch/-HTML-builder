@@ -7,6 +7,7 @@ const templateFile = path.join(__dirname, 'template.html');
 const componentsPath = path.join(__dirname, 'components');
 const stylesPath = path.join(__dirname, 'styles');
 const distStyles = path.join(distDir, 'style.css');
+const assetsPath = path.join(__dirname, 'assets');
 
 async function createDistFolder(dist) {
   await fsPromises.rm(dist, { recursive: true, force: true });
@@ -73,10 +74,37 @@ async function bundleStyles(sourcePath, distFile) {
   }
 };
 
-async function buidPage(dist, template, components, styles, distStyle) {
-  await createDistFolder(dist);
-  await createHtml(template, components, dist);
-  bundleStyles(styles, distStyle)
+async function copyDir(sourcePath, destPath) {
+  try {
+    await fsPromises.rm(destPath, { recursive: true, force: true });
+    await fsPromises.mkdir(destPath, { recursive: true });
+    const files = await fsPromises.readdir(sourcePath, { withFileTypes: true });
+    for (const file of files) {
+      if (file.isFile()) {
+        const sourceFile = path.resolve(file.path, file.name);
+        const destFile = path.resolve(destPath, file.name);
+
+        await fsPromises.copyFile(sourceFile, destFile);
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-buidPage(distDir, templateFile, componentsPath, stylesPath, distStyles);
+async function buidPage(dist, template, components, styles, distStyle, assets) {
+  await createDistFolder(dist);
+  await createHtml(template, components, dist);
+  await bundleStyles(styles, distStyle);
+
+  const distAssets = path.join(dist, 'assets');
+  const dirs = await fsPromises.readdir(assets, { withFileTypes: true });
+  for (const dir of dirs) {
+    if (dir.isDirectory()) {
+      const sourceDir = path.join(assets, dir.name);
+      await copyDir(sourceDir, path.join(distAssets, dir.name));
+    }
+  }
+}
+
+buidPage(distDir, templateFile, componentsPath, stylesPath, distStyles, assetsPath);
